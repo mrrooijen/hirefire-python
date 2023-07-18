@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 
 from rq import Queue, Worker
-from rq.registry import StartedJobRegistry
+from rq.registry import StartedJobRegistry, ScheduledJobRegistry
 from rq.exceptions import NoSuchJobError
 
 from . import ClientProc
@@ -57,9 +57,10 @@ class RQProc(ClientProc):
         """
         count = 0
 
-        # Total count should be what's queued plus the started jobs.
+        # Total count should be what's queued plus the started jobs plus jobs scheduled to run now.
         for queue in self.clients:
-            registry = StartedJobRegistry(queue.name, queue.connection)
-            count += (queue.count + len(registry))
+            started_job_registry = StartedJobRegistry(queue.name, queue.connection)
+            scheduled_job_registry = ScheduledJobRegistry(queue.name, queue.connection)
+            count += (queue.count + len(started_job_registry) + len(scheduled_job_registry.get_jobs_to_schedule()))
 
         return count
